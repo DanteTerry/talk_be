@@ -6,6 +6,7 @@ import ExpressMongoSanitize from "express-mongo-sanitize";
 import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
+import createHttpError from "http-errors";
 
 const app = express();
 
@@ -44,7 +45,22 @@ app.get("/", (req, res) => {
 });
 
 app.post("/", (req, res) => {
-  res.status(200).json(req.body);
+  throw createHttpError.BadRequest("This route has an error");
+});
+
+// error handling route not found
+app.use(async (req, res, next) => {
+  next(createHttpError.NotFound("This route does not exist"));
+});
+
+// error handling for http request
+app.use(async (err, req, res, next) => {
+  res.status(err.status || 500).send({
+    error: {
+      status: err.status || 500,
+      message: err.message,
+    },
+  });
 });
 
 export default app;
