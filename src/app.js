@@ -7,6 +7,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
 import createHttpError from "http-errors";
+import routes from "./routes/index.js";
 
 const app = express();
 
@@ -36,6 +37,9 @@ app.use(fileUpload({ useTempFiles: true }));
 
 // enabling cors
 app.use(cors());
+
+// mounting routes
+app.use("/api/v1", routes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
