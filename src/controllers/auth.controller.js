@@ -1,5 +1,7 @@
+import createHttpError from "http-errors";
 import { createUser, signUser } from "../services/auth.service.js";
-import { generateToken } from "../services/token.service.js";
+import { generateToken, verifyToken } from "../services/token.service.js";
+import { findUser } from "../services/user.service.js";
 
 export const register = async (req, res, next) => {
   try {
@@ -108,6 +110,37 @@ export const logOut = async (req, res, next) => {
 
 export const refreshToken = async (req, res, next) => {
   try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw createHttpError.Unauthorized(
+        "Please login before processing request"
+      );
+    }
+
+    const check = await verifyToken(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    console.log(check.userId);
+
+    const user = await findUser(check.userId);
+
+    const accessToken = await generateToken(
+      { userId: user._id },
+      "1d",
+      process.env.ACCESS_TOKEN_SECRET
+    );
+    res.status(200).json({
+      accessToken: accessToken,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        picture: user.picture,
+        status: user.status,
+      },
+    });
   } catch (error) {
     next(error);
   }
