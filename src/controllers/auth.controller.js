@@ -6,6 +6,7 @@ import { findUser } from "../services/user.service.js";
 export const register = async (req, res, next) => {
   try {
     const { name, email, password, status, picture } = req.body;
+
     const newUser = await createUser({
       name,
       email,
@@ -26,8 +27,6 @@ export const register = async (req, res, next) => {
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    console.table({ accessToken, refreshToken });
-
     res
       .status(201)
       .cookie("refreshToken", refreshToken, {
@@ -39,16 +38,17 @@ export const register = async (req, res, next) => {
       .json({
         success: true,
         message: "User created successfully",
-        accessToken: accessToken,
         user: {
           _id: newUser._id,
           name: newUser.name,
           email: newUser.email,
           picture: newUser.picture,
           status: newUser.status,
+          accessToken: accessToken,
         },
       });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
@@ -83,13 +83,14 @@ export const login = async (req, res, next) => {
       .json({
         success: true,
         message: "User logged in successfully",
-        accessToken: accessToken,
+
         user: {
           _id: user._id,
           name: user.name,
           email: user.email,
           picture: user.picture,
           status: user.status,
+          accessToken: accessToken,
         },
       });
   } catch (error) {
@@ -101,6 +102,7 @@ export const logOut = async (req, res, next) => {
   try {
     res.clearCookie("refreshToken", { path: "/api/v1/auth/refreshToken" });
     res.json({
+      success: true,
       message: "user logged out successfully",
     });
   } catch (error) {
@@ -132,13 +134,14 @@ export const refreshToken = async (req, res, next) => {
       process.env.ACCESS_TOKEN_SECRET
     );
     res.status(200).json({
-      accessToken: accessToken,
+      success: true,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
         picture: user.picture,
         status: user.status,
+        accessToken: accessToken,
       },
     });
   } catch (error) {
