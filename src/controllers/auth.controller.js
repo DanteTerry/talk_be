@@ -70,8 +70,6 @@ export const login = async (req, res, next) => {
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    console.table({ accessToken, refreshToken });
-
     res
       .status(201)
       .cookie("refreshToken", refreshToken, {

@@ -74,7 +74,7 @@ export const signUser = async (email, password) => {
   const passwordMatches = await bcrypt.compare(password, user.password);
 
   if (!passwordMatches) {
-    throw createHttpError.NotFound("Invalid credentials.");
+    throw createHttpError.NotFound("Invalid credentials");
   }
 
   return user;
