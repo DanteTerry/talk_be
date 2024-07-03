@@ -7,6 +7,10 @@ const conversationSchema = new Schema(
       required: [true, "Conversation name is required"],
       trim: true,
     },
+    picture: {
+      type: String,
+      required: true,
+    },
 
     isGroup: {
       type: Boolean,
@@ -23,7 +27,7 @@ const conversationSchema = new Schema(
 
     latestMessage: {
       type: Schema.Types.ObjectId,
-      ref: "MessageModel",
+      ref: "Message",
     },
 
     admin: {

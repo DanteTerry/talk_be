@@ -49,8 +49,10 @@ export const populateConversation = async (
   return populatedConversation;
 };
 
+// controller to get users conversation
 export const getUserConversations = async (user_id) => {
   let userConversation;
+
   await ConversationModel.find({
     users: { $elemMatch: { $eq: user_id } },
   })

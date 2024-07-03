@@ -9,3 +9,19 @@ export const findUser = async (userId) => {
   }
   return user;
 };
+
+export const searchUser = async (keyword) => {
+  try {
+    const users = await UserModel.find({
+      $or: [
+        { name: { $regex: keyword, $options: "i" } },
+        { email: { $regex: keyword, $options: "i" } },
+      ],
+    });
+
+    return users;
+  } catch (error) {
+    console.log(error);
+    throw createHttpError("Something went wrong");
+  }
+};
