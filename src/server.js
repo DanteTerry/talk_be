@@ -2,6 +2,7 @@ import app from "./app.js";
 import dotenv from "dotenv";
 import logger from "./configs/logger.js";
 import mongoose from "mongoose";
+import { Server } from "socket.io";
 
 // dotEnv Config
 dotenv.config();
@@ -29,6 +30,18 @@ if (process.env.NODE_ENV !== "production") {
 // listing to server
 const server = app.listen(PORT, () => {
   logger.info(`Server is listing on PORT ${PORT}..`);
+});
+
+// socket.io
+const io = new Server(server, {
+  pingTimeout: 60000,
+  cors: {
+    origin: process.env.LOCALHOST_URL,
+  },
+});
+
+io.on("connection", (socket) => {
+  logger.info("Socket.io connected successfully");
 });
 
 const exitHandler = () => {

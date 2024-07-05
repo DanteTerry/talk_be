@@ -21,7 +21,7 @@ export const populateMessage = async (id) => {
     })
     .populate({
       path: "conversation",
-      select: "name isGroup users",
+      select: "name picture isGroup users",
       model: "Conversation",
       populate: {
         path: "users",

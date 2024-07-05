@@ -13,7 +13,7 @@ export const sendMessage = async (req, res, next) => {
     const { message, conversation_id, files } = req.body;
     if (!conversation_id || (!message && !files)) {
       logger.error("Please provide a conversation id and message body");
-      return res.send(400);
+      return res.sendStatus(400);
     }
 
     const messageData = {
@@ -29,6 +29,7 @@ export const sendMessage = async (req, res, next) => {
 
     return res.json(populatedMessage);
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
