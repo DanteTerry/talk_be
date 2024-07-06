@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import logger from "./configs/logger.js";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
+import SocketServer from "./SocketServer.js ";
 
 // dotEnv Config
 dotenv.config();
@@ -23,9 +24,9 @@ mongoose.connection.on("error", (err) => {
 });
 
 // mongodb debug mode
-if (process.env.NODE_ENV !== "production") {
-  mongoose.set("debug", true);
-}
+// if (process.env.NODE_ENV !== "production") {
+//   mongoose.set("debug", true);
+// }
 
 // listing to server
 const server = app.listen(PORT, () => {
@@ -42,6 +43,7 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
   logger.info("Socket.io connected successfully");
+  SocketServer(socket, io);
 });
 
 const exitHandler = () => {
