@@ -39,9 +39,7 @@ export const createOpenConversation = async (req, res, next) => {
           isGroup: false,
           users: [sender_id, receiver_id],
         };
-
         const newConversation = await createConversation(conversationData);
-
         const populatedConversation = await populateConversation(
           newConversation._id,
           "users",

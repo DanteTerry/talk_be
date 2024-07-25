@@ -60,17 +60,30 @@ export default function (socket, io) {
       name: data.name,
       picture: data.picture,
       callType: data.callType,
+      usersInCall: data.usersInCall,
     });
   });
 
+  socket.on("toggle-video", (data) => {
+    const userId = data.userId;
+    io.to(userId).emit("toggle-video", { userId, enabled: data.enabled });
+  });
+
+  socket.on("toggle-audio", (data) => {
+    const userId = data.userId;
+    io.to(userId).emit("toggle-audio", { userId, enabled: data.enabled });
+  });
   // answer call
 
   socket.on("answer call", (data) => {
-    io.to(data.to).emit("call accepted", data.signal);
+    io.to(data.to).emit("call accepted", {
+      data: data.signal,
+      usersInCall: data.usersInCall,
+    });
   });
 
   // end call
-  socket.on("end call", (id) => {
-    io.to(id).emit("end call");
+  socket.on("end call", (data) => {
+    io.to(data.userId).emit("end call", data.usersInCall);
   });
 }
