@@ -2,28 +2,51 @@ import createHttpError from "http-errors";
 import UserModel from "../models/userModel.js";
 import ConversationModel from "../models/conversationModel.js";
 
-export const doesConversationExists = async (sender_Id, receiver_id) => {
-  let conversations = await ConversationModel.find({
-    isGroup: false,
-    $and: [
-      { users: { $elemMatch: { $eq: sender_Id } } },
-      { users: { $elemMatch: { $eq: receiver_id } } },
-    ],
-  })
-    .populate("users", "-password")
-    .populate("latestMessage");
+export const doesConversationExists = async (
+  sender_Id,
+  receiver_id,
+  isGroup
+) => {
+  if (isGroup === false) {
+    let conversations = await ConversationModel.find({
+      isGroup: false,
+      $and: [
+        { users: { $elemMatch: { $eq: sender_Id } } },
+        { users: { $elemMatch: { $eq: receiver_id } } },
+      ],
+    })
+      .populate("users", "-password")
+      .populate("latestMessage");
 
-  if (!conversations) {
-    throw createHttpError.BadGateway("oops something went wrong !");
+    if (!conversations) {
+      throw createHttpError.BadGateway("oops something went wrong !");
+    }
+
+    //   populate message model
+    conversations = await UserModel.populate(conversations, {
+      path: "latestMessage.sender",
+      select: "name email picture status",
+    });
+
+    return conversations[0];
+  } else {
+    //it's a group chat
+    let groupConversations = await ConversationModel.find(isGroup)
+      .populate("users admin", "-password")
+      .populate("latestMessage");
+
+    if (!groupConversations) {
+      throw createHttpError.BadGateway("oops something went wrong !");
+    }
+
+    //   populate message model
+    groupConversations = await UserModel.populate(groupConversations, {
+      path: "latestMessage.sender",
+      select: "name email picture status",
+    });
+
+    return groupConversations;
   }
-
-  //   populate message model
-  conversations = await UserModel.populate(conversations, {
-    path: "latestMessage.sender",
-    select: "name email picture status",
-  });
-
-  return conversations[0];
 };
 
 export const createConversation = async (data) => {
