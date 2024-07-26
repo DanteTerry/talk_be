@@ -1,89 +1,91 @@
-let onlineUser = [];
+let onlineUsers = [];
 
 export default function (socket, io) {
-  // user joins or opens the application
+  // User joins or opens the application
   socket.on("join", (userId) => {
     socket.join(userId);
 
-    // add joined user to online users
-    if (!onlineUser.some((user) => user?.userId === userId)) {
-      onlineUser.push({ userId: userId, socketId: socket.id });
+    // Add joined user to online users
+    if (!onlineUsers.some((user) => user?.userId === userId)) {
+      onlineUsers.push({ userId: userId, socketId: socket.id });
     }
 
-    // send online user to frontend
-    io.emit("get-online-users", onlineUser);
+    // Send online users to frontend
+    io.emit("get-online-users", onlineUsers);
 
-    // send socket id
-    io.emit("setup socket", socket.id);
+    // Send socket id
+    io.emit("setup-socket", socket.id);
   });
 
-  //   socket disconnect
+  // Socket disconnect
   socket.on("disconnect", () => {
-    onlineUser = onlineUser.filter((user) => user.socketId !== socket.id);
-    io.emit("get-online-users", onlineUser);
-    console.log("client disconnected");
+    onlineUsers = onlineUsers.filter((user) => user.socketId !== socket.id);
+    io.emit("get-online-users", onlineUsers);
+    console.log("Client disconnected");
   });
 
-  //   join a conversation room
-  socket.on("join conversation", (conversation) => {
+  // Join a conversation room
+  socket.on("join-conversation", (conversation) => {
     socket.join(conversation);
   });
 
-  //send and receive message
-  socket.on("send message", (message) => {
+  // Send and receive message
+  socket.on("send-message", (message) => {
     const conversation = message.conversation;
     if (!conversation.users) return;
 
     conversation.users.forEach((user) => {
       if (user._id === message.sender._id) return;
-      socket.in(user._id).emit("receive message", message);
+      socket.in(user._id).emit("receive-message", message);
     });
   });
 
-  //   typing
+  // Typing
   socket.on("typing", (conversation) => {
     socket.in(conversation).emit("typing");
   });
 
-  //  stop typing
-  socket.on("stop typing", (conversation) => {
-    socket.in(conversation).emit("stop typing");
+  // Stop typing
+  socket.on("stop-typing", (conversation) => {
+    socket.in(conversation).emit("stop-typing");
   });
 
-  // call
-  socket.on("call user", (data) => {
-    let userId = data.userToCall;
-    let userSocketId = onlineUser.find((user) => user.userId === userId);
-    io.to(userSocketId?.socketId).emit("call user", {
-      signal: data.signal,
-      from: data.from,
-      name: data.name,
-      picture: data.picture,
-      callType: data.callType,
-      usersInCall: data.usersInCall,
+  // Call user
+  socket.on("call-user", (data) => {
+    const { userToCall, signal, from, name, picture, callType, usersInCall } =
+      data;
+    const userSocket = onlineUsers.find((user) => user.userId === userToCall);
+    io.to(userSocket?.socketId).emit("call-user", {
+      signal,
+      from,
+      name,
+      picture,
+      callType,
+      usersInCall,
     });
   });
 
+  // Toggle video
   socket.on("toggle-video", (data) => {
-    const userId = data.userId;
-    io.to(userId).emit("toggle-video", { userId, enabled: data.enabled });
+    const { userId, enabled } = data;
+    io.to(userId).emit("toggle-video", { userId, enabled });
   });
 
+  // Toggle audio
   socket.on("toggle-audio", (data) => {
-    const userId = data.userId;
-    io.to(userId).emit("toggle-audio", { userId, enabled: data.enabled });
-  });
-  // answer call
-
-  socket.on("answer call", (data) => {
-    io.to(data.to).emit("call accepted", {
-      data: data.signal,
-      usersInCall: data.usersInCall,
-    });
+    const { userId, enabled } = data;
+    io.to(userId).emit("toggle-audio", { userId, enabled });
   });
 
-  // end call
-  socket.on("end call", (data) => {
-    io.to(data.userId).emit("end call", data.usersInCall);
+  // Answer call
+  socket.on("answer-call", (data) => {
+    const { to, signal, usersInCall } = data;
+    io.to(to).emit("call-accepted", { data: signal, usersInCall });
+  });
+
+  // End call
+  socket.on("end-call", (data) => {
+    const { userId, usersInCall } = data;
+    io.to(userId).emit("end-call", usersInCall);
   });
 }
