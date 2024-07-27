@@ -102,8 +102,6 @@ export const createGroup = async (req, res, next) => {
       "-password"
     );
 
-    console.log(populateConversations);
-
     res.status(200).json(populateConversations);
   } catch (error) {
     next(error);
