@@ -79,6 +79,8 @@ export default function (socket, io) {
     io.to(data.to).emit("call accepted", {
       data: data.signal,
       usersInCall: data.usersInCall,
+      userName: data.userName,
+      userPicture: data.userPicture,
     });
   });
 
