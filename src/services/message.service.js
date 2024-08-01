@@ -52,12 +52,14 @@ export const updateLatestMessage = async (conversation_id, message) => {
   return updatedConversation;
 };
 
-export const getConversationMessages = async (conversation_id) => {
+export const getConversationMessages = async (conversation_id, limit, skip) => {
   const messages = await MessageModel.find({
     conversation: conversation_id,
   })
     .populate("sender", "name picture email status")
-    .populate("conversation");
+    .populate("conversation")
+    .sort({ createdAt: -1 })
+    .limit(20);
 
   if (!messages) {
     throw createHttpError.BadRequest("Oops something went wrong");

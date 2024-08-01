@@ -48,7 +48,7 @@ export const createOpenConversation = async (req, res, next) => {
         return res.status(200).json(populatedConversation);
       }
     } else {
-      console.log("group exists");
+      next("group exists");
     }
   } catch (error) {
     // check if group chat exists

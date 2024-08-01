@@ -1,6 +1,6 @@
 let onlineUser = [];
 
-export default function (socket, io) {
+export default async function (socket, io) {
   // user joins or opens the application
   socket.on("join", (userId) => {
     socket.join(userId);

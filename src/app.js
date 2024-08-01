@@ -8,6 +8,7 @@ import morgan from "morgan";
 import cors from "cors";
 import createHttpError from "http-errors";
 import routes from "./routes/index.js";
+import { translate } from "bing-translate-api";
 
 const app = express();
 
