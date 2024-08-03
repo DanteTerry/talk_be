@@ -1,6 +1,7 @@
 import createHttpError from "http-errors";
 import MessageModel from "../models/messageModel.js";
 import ConversationModel from "../models/conversationModel.js";
+import redis from "../redisClient.js";
 
 export const createMessage = async (data) => {
   let newMessage = await MessageModel.create(data);

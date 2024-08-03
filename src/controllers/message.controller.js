@@ -1,22 +1,39 @@
-import logger from "../configs/logger.js";
 import {
   createMessage,
   getConversationMessages,
   populateMessage,
   updateLatestMessage,
 } from "../services/message.service.js";
+import {
+  cacheConversation,
+  deleteCache,
+  getCachedConversation,
+} from "../utils/redis.util.js";
 import { translate } from "bing-translate-api";
+import LanguageModel from "../models/language.model.js";
 
 export const sendMessage = async (req, res, next) => {
   try {
     const user_id = req.user.userId;
+    const { message, conversation_id, files, otherUserId } = req.body;
+    const page = 1;
+    const limit = 30;
+    const skip = (page - 1) * limit;
 
-    const { message, conversation_id, files } = req.body;
+    // Validate input
     if (!conversation_id || (!message && !files)) {
-      logger.error("Please provide a conversation id and message body");
+      console.error("Please provide a conversation id and message body");
       return res.sendStatus(400);
     }
 
+    // Get user languages
+    const user = await LanguageModel.findOne({ user: user_id });
+    const otherUser = await LanguageModel.findOne({ user: otherUserId });
+    const userLang = user.language;
+    const otherUserLang = otherUser.language;
+    const languages = [userLang, otherUserLang];
+
+    // Prepare message data
     const messageData = {
       sender: user_id,
       message,
@@ -24,69 +41,128 @@ export const sendMessage = async (req, res, next) => {
       files: files || [],
     };
 
-    let newMessage = await createMessage(messageData);
-    let populatedMessage = await populateMessage(newMessage._id);
+    // Create new message and populate with necessary data
+    const newMessage = await createMessage(messageData);
+    const populatedMessage = await populateMessage(newMessage._id);
+
+    // Update latest message in conversation
     await updateLatestMessage(conversation_id, newMessage);
 
-    return res.json(populatedMessage);
-  } catch (error) {
-    console.log(error);
-    next(error);
-  }
-};
+    // Invalidate cache for conversation
+    const cacheKey = `conversation:${conversation_id}`;
+    await deleteCache(cacheKey);
 
-export const translateMessage = async (messages, lang) => {
-  try {
-    // Process all translations in parallel using Promise.all
-    const translatedMessages = await Promise.all(
-      messages.map(async (message) => {
-        try {
-          // If message is a Mongoose document, convert it to a plain object
-          if (message.toObject) {
-            message = message.toObject();
-          }
-
-          // Translate the message text
-          const res = await translate(message.message, null, lang || "en");
-          message.message = res?.translation; // Update the message text with the translated text
-
-          return message; // Return the modified message object
-        } catch (error) {
-          console.error(`Error translating message: ${message.message}`, error);
-          return message; // Return the original message in case of an error
-        }
-      })
-    );
-
-    return translatedMessages; // Return the array of translated messages
-  } catch (error) {
-    console.error("Error in translating messages:", error);
-    throw error; // Rethrow to allow handling in calling context
-  }
-};
-
-export const getMessage = async (req, res, next) => {
-  try {
-    const conversation_id = req.params.conversation_id;
-    const page = req.query.page;
-    const limit = 30;
-    const skip = (page - 1) * limit;
-    const lang = req.query.lang;
-
-    if (!conversation_id) {
-      logger.error("Please add a conversation id in params");
-      res.status(400);
-    }
-
-    const messages = await getConversationMessages(
+    // Fetch updated messages and cache them
+    const updatedMessages = await getConversationMessages(
       conversation_id,
       limit,
       skip
     );
 
-    const updatedMessage = await translateMessage(messages, lang);
+    // Cache the updated conversation messages
+    await cacheConversation(cacheKey, updatedMessages);
 
-    return res.json(updatedMessage);
+    // Translate and cache messages for each language
+    for (const language of languages) {
+      const translateMessageCacheKey = `translated:${conversation_id}:${language}`;
+      await deleteCache(translateMessageCacheKey);
+      const translatedMessages = await translateMessage(
+        updatedMessages,
+        language,
+        translateMessageCacheKey
+      );
+      await cacheConversation(translateMessageCacheKey, translatedMessages);
+    }
+
+    // Return the new message
+    return res.status(201).json(populatedMessage);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    next(error);
+  }
+};
+export const translateMessage = async (
+  messages,
+  lang,
+  translateMessageCacheKey
+) => {
+  try {
+    const cachedMessages = await getCachedConversation(
+      translateMessageCacheKey
+    );
+
+    if (cachedMessages) {
+      return cachedMessages;
+    } else {
+      const translatedMessages = await Promise.all(
+        messages.map(async (message) => {
+          try {
+            if (message.toObject) {
+              message = message.toObject();
+            }
+            const res = await translate(message.message, null, lang);
+            message.message = res?.translation;
+            return message;
+          } catch (error) {
+            console.error(
+              `Error translating message: ${message.message}`,
+              error
+            );
+            return message;
+          }
+        })
+      );
+
+      await cacheConversation(translateMessageCacheKey, translatedMessages);
+      return translatedMessages;
+    }
+  } catch (error) {
+    console.error("Error in translating messages:", error);
+    throw error;
+  }
+};
+
+export const getMessage = async (req, res, next) => {
+  try {
+    const { conversation_id } = req.params;
+    const { page = 1, lang } = req.query;
+    const limit = 30;
+    const skip = (page - 1) * limit;
+
+    if (!conversation_id) {
+      return res
+        .status(400)
+        .json({ message: "Please add a conversation id in params" });
+    }
+
+    const conversationCacheKey = `conversation:${conversation_id}`;
+    const translateMessageCacheKey = `translated:${conversation_id}:${lang}`;
+    const cachedMessages = await getCachedConversation(conversationCacheKey);
+
+    if (cachedMessages) {
+      console.log(translateMessageCacheKey);
+      const updatedMessage = await translateMessage(
+        cachedMessages,
+        lang,
+        translateMessageCacheKey
+      );
+
+      res.status(200).json(updatedMessage);
+    } else {
+      const messages = await getConversationMessages(
+        conversation_id,
+        limit,
+        skip
+      );
+      await cacheConversation(conversationCacheKey, messages);
+      const translatedMessage = await translateMessage(
+        messages,
+        lang,
+        translateMessageCacheKey
+      );
+
+      res.status(200).json(translatedMessage);
+    }
   } catch (error) {
     next(error);
   }

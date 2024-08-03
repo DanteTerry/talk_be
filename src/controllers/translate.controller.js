@@ -1,12 +1,15 @@
 import { translate } from "bing-translate-api";
+import redis from "../redisClient.js";
 
 export const translatedMessage = async (req, res, next) => {
   try {
     const data = await req.body;
-    const { message, lang } = data;
+    let { message, lang } = data;
 
     const translateMessage = await translate(message.message, null, lang);
     message.message = translateMessage?.translation;
+
+    lang = "";
 
     return res.status(200).json(message);
   } catch (error) {
@@ -16,6 +19,8 @@ export const translatedMessage = async (req, res, next) => {
 
 export const translateAllMessage = async (req, res, next) => {
   const data = await req.body;
+
+  const { userId } = req.user;
 
   const { messages, lang } = data;
 
@@ -28,9 +33,8 @@ export const translateAllMessage = async (req, res, next) => {
           if (message.toObject) {
             message = message.toObject();
           }
-
           // Translate the message text
-          const res = await translate(message.message, null, lang || "en");
+          const res = await translate(message.message, null, lang);
           message.message = res?.translation; // Update the message text with the translated text
 
           return message; // Return the modified message object
