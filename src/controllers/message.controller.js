@@ -91,31 +91,28 @@ export const translateMessage = async (
       translateMessageCacheKey
     );
 
-    if (cachedMessages) {
-      return cachedMessages;
-    } else {
-      const translatedMessages = await Promise.all(
-        messages.map(async (message) => {
-          try {
-            if (message.toObject) {
-              message = message.toObject();
-            }
-            const res = await translate(message.message, null, lang);
-            message.message = res?.translation;
-            return message;
-          } catch (error) {
-            console.error(
-              `Error translating message: ${message.message}`,
-              error
-            );
-            return message;
+    // if (cachedMessages) {
+    //   return cachedMessages;
+    // } else {
+    const translatedMessages = await Promise.all(
+      messages.map(async (message) => {
+        try {
+          if (message.toObject) {
+            message = message.toObject();
           }
-        })
-      );
+          const res = await translate(message.message, null, lang);
+          message.message = res?.translation;
+          return message;
+        } catch (error) {
+          console.error(`Error translating message: ${message.message}`, error);
+          return message;
+        }
+      })
+    );
 
-      await cacheConversation(translateMessageCacheKey, translatedMessages);
-      return translatedMessages;
-    }
+    //await cacheConversation(translateMessageCacheKey, translatedMessages);
+    return translatedMessages;
+    // }
   } catch (error) {
     console.error("Error in translating messages:", error);
     throw error;
@@ -125,7 +122,8 @@ export const translateMessage = async (
 export const getMessage = async (req, res, next) => {
   try {
     const { conversation_id } = req.params;
-    const { page = 1, lang } = req.query;
+    const { page, lang } = req.query;
+
     const limit = 30;
     const skip = (page - 1) * limit;
 
@@ -139,30 +137,30 @@ export const getMessage = async (req, res, next) => {
     const translateMessageCacheKey = `translated:${conversation_id}:${lang}`;
     const cachedMessages = await getCachedConversation(conversationCacheKey);
 
-    if (cachedMessages) {
-      console.log(translateMessageCacheKey);
-      const updatedMessage = await translateMessage(
-        cachedMessages,
-        lang,
-        translateMessageCacheKey
-      );
+    // if (cachedMessages) {
+    //   console.log(translateMessageCacheKey);
+    //   const updatedMessage = await translateMessage(
+    //     cachedMessages,
+    //     lang,
+    //     translateMessageCacheKey
+    //   );
 
-      res.status(200).json(updatedMessage);
-    } else {
-      const messages = await getConversationMessages(
-        conversation_id,
-        limit,
-        skip
-      );
-      await cacheConversation(conversationCacheKey, messages);
-      const translatedMessage = await translateMessage(
-        messages,
-        lang,
-        translateMessageCacheKey
-      );
+    //   res.status(200).json(updatedMessage);
+    // } else {
+    const messages = await getConversationMessages(
+      conversation_id,
+      limit,
+      skip
+    );
+    await cacheConversation(conversationCacheKey, messages);
+    const translatedMessage = await translateMessage(
+      messages,
+      lang,
+      translateMessageCacheKey
+    );
 
-      res.status(200).json(translatedMessage);
-    }
+    res.status(200).json(translatedMessage);
+    // }
   } catch (error) {
     next(error);
   }

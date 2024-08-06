@@ -32,7 +32,7 @@ export default async function (socket, io) {
   //send and receive message
   socket.on("send message", (message) => {
     const conversation = message.conversation;
-    if (!conversation.users) return;
+    if (!conversation?.users) return;
 
     conversation.users.forEach((user) => {
       if (user._id === message.sender._id) return;

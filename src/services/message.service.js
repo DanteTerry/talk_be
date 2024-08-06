@@ -1,7 +1,6 @@
 import createHttpError from "http-errors";
 import MessageModel from "../models/messageModel.js";
 import ConversationModel from "../models/conversationModel.js";
-import redis from "../redisClient.js";
 
 export const createMessage = async (data) => {
   let newMessage = await MessageModel.create(data);
@@ -60,7 +59,8 @@ export const getConversationMessages = async (conversation_id, limit, skip) => {
     .populate("sender", "name picture email status")
     .populate("conversation")
     .sort({ createdAt: -1 })
-    .limit(20);
+    .limit(limit)
+    .skip(skip);
 
   if (!messages) {
     throw createHttpError.BadRequest("Oops something went wrong");
