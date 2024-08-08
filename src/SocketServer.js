@@ -88,4 +88,25 @@ export default async function (socket, io) {
   socket.on("end call", (data) => {
     io.to(data.userId).emit("end call", data.usersInCall);
   });
+
+  // send friend request
+  socket.on("send-friend-request", (data) => {
+    const { receiver } = data;
+    let userSocketId = onlineUser.find((user) => user.userId === receiver);
+    io.to(userSocketId?.socketId).emit("receive-friend-request", data);
+  });
+
+  // accept friend request
+  socket.on("accept-friend-request", (data) => {
+    const { friendId } = data;
+    let userSocketId = onlineUser.find((user) => user.userId === friendId);
+    io.to(userSocketId?.socketId).emit("accepted-friend-request");
+  });
+
+  // reject friend request
+  socket.on("reject-friend-request", (data) => {
+    const { friendId } = data;
+    let userSocketId = onlineUser.find((user) => user.userId === friendId);
+    io.to(userSocketId?.socketId).emit("rejected-friend-request");
+  });
 }
