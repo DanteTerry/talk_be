@@ -26,7 +26,7 @@ const userSchema = Schema(
 
     status: {
       type: String,
-      default: "Hey there! I am using WhatsApp.",
+      default: "Hey there! I am using Talk.",
     },
 
     password: {
