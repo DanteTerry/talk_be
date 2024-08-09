@@ -30,12 +30,13 @@ export const createOpenConversation = async (req, res, next) => {
       );
 
       if (existed_conversation) {
-        res.json(existed_conversation);
+        res.status(200).json(existed_conversation);
       } else {
-        let receiver_user = await findUser(receiver_id);
+        let sender_user = await findUser(sender_id);
+
         let conversationData = {
-          name: "conversation name",
-          picture: "conversation picture",
+          name: sender_user.name,
+          picture: sender_user.picture,
           isGroup: false,
           users: [sender_id, receiver_id],
         };
@@ -70,6 +71,7 @@ export const getConversation = async (req, res, next) => {
     next(error);
   }
 };
+
 export const createGroup = async (req, res, next) => {
   const { name, users } = req.body;
   //add current user to users

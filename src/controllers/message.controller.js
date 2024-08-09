@@ -87,13 +87,6 @@ export const translateMessage = async (
   translateMessageCacheKey
 ) => {
   try {
-    const cachedMessages = await getCachedConversation(
-      translateMessageCacheKey
-    );
-
-    // if (cachedMessages) {
-    //   return cachedMessages;
-    // } else {
     const translatedMessages = await Promise.all(
       messages.map(async (message) => {
         try {
@@ -110,9 +103,7 @@ export const translateMessage = async (
       })
     );
 
-    //await cacheConversation(translateMessageCacheKey, translatedMessages);
     return translatedMessages;
-    // }
   } catch (error) {
     console.error("Error in translating messages:", error);
     throw error;
@@ -122,8 +113,7 @@ export const translateMessage = async (
 export const getMessage = async (req, res, next) => {
   try {
     const { conversation_id } = req.params;
-    const { page, lang } = req.query;
-
+    let { page, lang } = req.query;
     const limit = 30;
     const skip = (page - 1) * limit;
 
@@ -135,18 +125,7 @@ export const getMessage = async (req, res, next) => {
 
     const conversationCacheKey = `conversation:${conversation_id}`;
     const translateMessageCacheKey = `translated:${conversation_id}:${lang}`;
-    const cachedMessages = await getCachedConversation(conversationCacheKey);
 
-    // if (cachedMessages) {
-    //   console.log(translateMessageCacheKey);
-    //   const updatedMessage = await translateMessage(
-    //     cachedMessages,
-    //     lang,
-    //     translateMessageCacheKey
-    //   );
-
-    //   res.status(200).json(updatedMessage);
-    // } else {
     const messages = await getConversationMessages(
       conversation_id,
       limit,
@@ -159,8 +138,7 @@ export const getMessage = async (req, res, next) => {
       translateMessageCacheKey
     );
 
-    res.status(200).json(translatedMessage);
-    // }
+    return res.status(200).json(translatedMessage);
   } catch (error) {
     next(error);
   }
