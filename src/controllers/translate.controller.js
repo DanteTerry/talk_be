@@ -1,5 +1,4 @@
 import { translate } from "bing-translate-api";
-import redis from "../redisClient.js";
 
 export const translatedMessage = async (req, res, next) => {
   try {

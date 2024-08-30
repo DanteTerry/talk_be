@@ -4,7 +4,6 @@ import logger from "./configs/logger.js";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
 import SocketServer from "./SocketServer.js ";
-import { ExpressPeerServer } from "peer";
 
 // dotEnv Config
 dotenv.config();
@@ -41,10 +40,6 @@ const io = new Server(server, {
     origin: process.env.LOCALHOST_URL,
   },
 });
-
-// const peerServer = ExpressPeerServer(server);
-
-// app.use("/peerjs", peerServer);
 
 io.on("connection", (socket) => {
   logger.info("Socket.io connected successfully");

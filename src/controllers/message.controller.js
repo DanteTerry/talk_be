@@ -4,11 +4,7 @@ import {
   populateMessage,
   updateLatestMessage,
 } from "../services/message.service.js";
-import {
-  cacheConversation,
-  deleteCache,
-  getCachedConversation,
-} from "../utils/redis.util.js";
+
 import { translate } from "bing-translate-api";
 import LanguageModel from "../models/language.model.js";
 
@@ -48,32 +44,6 @@ export const sendMessage = async (req, res, next) => {
     // Update latest message in conversation
     await updateLatestMessage(conversation_id, newMessage);
 
-    // Invalidate cache for conversation
-    const cacheKey = `conversation:${conversation_id}`;
-    await deleteCache(cacheKey);
-
-    // Fetch updated messages and cache them
-    const updatedMessages = await getConversationMessages(
-      conversation_id,
-      limit,
-      skip
-    );
-
-    // Cache the updated conversation messages
-    await cacheConversation(cacheKey, updatedMessages);
-
-    // Translate and cache messages for each language
-    for (const language of languages) {
-      const translateMessageCacheKey = `translated:${conversation_id}:${language}`;
-      await deleteCache(translateMessageCacheKey);
-      const translatedMessages = await translateMessage(
-        updatedMessages,
-        language,
-        translateMessageCacheKey
-      );
-      await cacheConversation(translateMessageCacheKey, translatedMessages);
-    }
-
     // Return the new message
     return res.status(201).json(populatedMessage);
   } catch (error) {
@@ -81,11 +51,7 @@ export const sendMessage = async (req, res, next) => {
     next(error);
   }
 };
-export const translateMessage = async (
-  messages,
-  lang,
-  translateMessageCacheKey
-) => {
+export const translateMessage = async (messages, lang) => {
   try {
     const translatedMessages = await Promise.all(
       messages.map(async (message) => {
@@ -123,20 +89,13 @@ export const getMessage = async (req, res, next) => {
         .json({ message: "Please add a conversation id in params" });
     }
 
-    const conversationCacheKey = `conversation:${conversation_id}`;
-    const translateMessageCacheKey = `translated:${conversation_id}:${lang}`;
-
     const messages = await getConversationMessages(
       conversation_id,
       limit,
       skip
     );
-    await cacheConversation(conversationCacheKey, messages);
-    const translatedMessage = await translateMessage(
-      messages,
-      lang,
-      translateMessageCacheKey
-    );
+
+    const translatedMessage = await translateMessage(messages, lang);
 
     return res.status(200).json(translatedMessage);
   } catch (error) {
