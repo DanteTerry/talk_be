@@ -37,7 +37,11 @@ app.use(compression());
 app.use(fileUpload({ useTempFiles: true }));
 
 // enabling cors
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.LOCALHOST_URL,
+  })
+);
 
 // mounting routes
 app.use("/api/v1", routes);
