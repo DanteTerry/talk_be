@@ -23,11 +23,6 @@ mongoose.connection.on("error", (err) => {
   process.exit(1);
 });
 
-// mongodb debug mode
-// if (process.env.NODE_ENV !== "production") {
-//   mongoose.set("debug", true);
-// }
-
 // listing to server
 const server = app.listen(PORT, () => {
   logger.info(`Server is listing on PORT ${PORT}..`);

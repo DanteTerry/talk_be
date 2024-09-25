@@ -33,34 +33,48 @@ export const addFriendRequest = async (req, res, next) => {
   try {
     const { sender, receiver } = req.body;
 
+    // Validate that sender and receiver IDs are provided
     if (!sender || !receiver) {
       throw createHttpError.BadRequest("Sender and receiver IDs are required.");
     }
 
+    // Prevent users from sending requests to themselves
     if (sender === receiver) {
       throw createHttpError.BadRequest(
         "Sender and receiver cannot be the same."
       );
     }
 
-    const senderUser = await UserModel.findById(sender);
-    const receiverUser = await UserModel.findById(receiver);
+    // Ensure that both sender and receiver exist in the system
+    const [senderUser, receiverUser] = await Promise.all([
+      UserModel.findById(sender),
+      UserModel.findById(receiver),
+    ]);
 
     if (!senderUser || !receiverUser) {
       throw createHttpError.NotFound("Sender or receiver not found.");
     }
 
-    const existingRequest = await FriendRequest.findOne({
-      sender,
-      receiver,
-    });
+    // Check if a friend request already exists between these users
+    const existingRequest = await FriendRequest.findOne({ sender, receiver });
 
-    if (existingRequest) {
-      throw createHttpError.Conflict(
-        "A friend request already exists between these users."
-      );
+    // If the request was previously rejected, update the status back to pending
+    if (
+      existingRequest &&
+      (existingRequest.status === "rejected" ||
+        existingRequest.status === "accepted")
+    ) {
+      existingRequest.status = "pending";
+      await existingRequest.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Friend request sent again.",
+        request: existingRequest,
+      });
     }
 
+    // If no previous request or rejected request, create a new friend request
     const newRequest = await FriendRequest.create({
       sender,
       receiver,

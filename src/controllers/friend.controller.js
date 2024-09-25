@@ -91,3 +91,49 @@ export const addFriends = async (req, res, next) => {
     next(error);
   }
 };
+
+export const removeFriend = async (req, res, next) => {
+  try {
+    const { userId, friendId } = req.body;
+
+    // Validate input
+    if (!userId || !friendId) {
+      throw createHttpError.BadRequest("User ID and Friend ID are required.");
+    }
+
+    // Check if both users exist
+    const user = await UserModel.findById(userId);
+    const friend = await UserModel.findById(friendId);
+
+    if (!user || !friend) {
+      throw createHttpError.NotFound("User or Friend not found.");
+    }
+
+    // Check user's friends list
+    let userFriends = await Friends.findOne({ user: userId });
+    let friendFriends = await Friends.findOne({ user: friendId });
+
+    // Check if the user is already friends with the specified friend
+    if (!userFriends || !userFriends.friends.includes(friendId)) {
+      throw createHttpError.Conflict("This user is not in your friend list.");
+    }
+
+    // Check if the friend has the user in their friends list
+    if (!friendFriends || !friendFriends.friends.includes(userId)) {
+      throw createHttpError.Conflict("This user is not in your friend's list.");
+    }
+
+    // Remove friend from user's friends list
+    await Friends.updateOne({ user: userId }, { $pull: { friends: friendId } });
+
+    // Remove user from friend's friends list
+    await Friends.updateOne({ user: friendId }, { $pull: { friends: userId } });
+
+    res.status(200).json({
+      success: true,
+      message: "Friend removed successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
