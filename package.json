@@ -5,8 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node ./src/server.js",
-    "dev": "cross-env NODE_ENV=development nodemon ./src/server.js"
+    "start": "node ./api/server.js",
+    "dev": "cross-env NODE_ENV=development nodemon ./api/server.js"
   },
   "keywords": [],
   "author": "",
